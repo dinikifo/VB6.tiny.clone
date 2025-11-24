@@ -75,21 +75,10 @@ There is also a small bridge from JSON to Qt widgets:
 
 ## Demo
 
-The main demo is `demo2.py`, which shows:
+The main demo is `demo.zip`, which shows:
 
-- A simple “Customer editor” form defined in JSON.
-- A list of customers and a city selector.
-- VB-style code that:
-  - Loads JSON, populates list/combos.
-  - Handles button clicks.
-  - Navigates the embedded web browser.
-  - Uses loops, functions, and basic string/number logic.
+- A simple and minimalistic accounting app (demonstrating the data and working structure from the post found in: https://medium.com/@RobertKhou/double-entry-accounting-in-a-relational-database-2b7838a5d7f8). TODO: writting an app manual.
 
-Run it with:
-
-```bash
-python tinyvb_webext/demo2.py
-```
 
 > **Note:** You need PySide6 (and Qt WebEngine for the browser control) installed for the demo to work.
 
