@@ -77,10 +77,8 @@ There is also a small bridge from JSON to Qt widgets:
 
 The main demo is `demo.zip`, which shows:
 
-- A simple and minimalistic accounting app (demonstrating the data and working structure from the post found in: https://medium.com/@RobertKhou/double-entry-accounting-in-a-relational-database-2b7838a5d7f8). TODO: writting an app manual.
+- A simple and minimalistic accounting app (demonstrating the data and working structure from the post found in: https://medium.com/@RobertKhou/double-entry-accounting-in-a-relational-database-2b7838a5d7f8). TODO: writting an app manual. NOTES: parts were updated to accomodate the demo's functionality.
 
-
-> **Note:** You need PySide6 (and Qt WebEngine for the browser control) installed for the demo to work.
 
 ---
 
