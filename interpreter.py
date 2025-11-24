@@ -1,5 +1,6 @@
 import re
 from runtime import VBJsonRuntime, VBContext
+import runtime as vb_runtime
 
 
 class VBInterpreter:
@@ -355,14 +356,33 @@ class VBInterpreter:
 
     # ------------ Simple statements ------------ #
 
+    def _find_assignment_equals(self, line: str) -> int:
+        """Find the position of an '=' that is not inside a string literal.
+
+        This prevents lines like:
+            lstPostings.Add "New journal created: ID=" & x
+        from being misinterpreted as assignments.
+        """
+        in_string = False
+        prev = ""
+        for i, ch in enumerate(line):
+            if ch == '"' and prev != '\\':
+                in_string = not in_string
+            if ch == "=" and not in_string:
+                return i
+            prev = ch
+        return -1
+
     def exec_line(self, line: str):
         upper = line.upper()
         if upper.startswith("DIM "):
             self._exec_dim(line[3:].strip())
             return
 
-        if "=" in line and not upper.startswith("IF "):
-            left, right = map(str.strip, line.split("=", 1))
+        eq_pos = self._find_assignment_equals(line) if "=" in line else -1
+        if eq_pos != -1 and not upper.startswith("IF "):
+            left = line[:eq_pos].strip()
+            right = line[eq_pos + 1 :].strip()
             value = self.eval_expr(right)
             self.assign(left, value)
             return
@@ -537,6 +557,16 @@ class VBInterpreter:
             obj, path = args[0], str(args[1])
             return VBJsonRuntime.json_get(obj, path)
 
+        # Accounting built-in: NewJournal(date, description, [period])
+        if upper == "NEWJOURNAL":
+            app_data = self.ctx.get_var("AppData")
+            date = str(args[0]) if len(args) > 0 else ""
+            desc = str(args[1]) if len(args) > 1 else ""
+            period = None
+            if len(args) > 2 and args[2] is not None:
+                period = str(args[2])
+            return vb_runtime.create_journal(app_data, date, desc, period)
+
         print(f"[VB] Unknown function in expression: {name}")
         return None
 
@@ -612,6 +642,26 @@ class VBInterpreter:
                     print(f"[VB] Error in BrowserEvalJs: {e}")
             else:
                 print("[VB] First argument to BrowserEvalJs is not a browser object")
+            return
+
+        # Accounting built-in: PostEntry accountCode, assetTypeCode, period, journalId, amount
+        if upper == "POSTENTRY":
+            if len(eval_args) < 5:
+                print("[VB] PostEntry requires 5 args: accountCode, assetTypeCode, period, journalId, amount")
+                return
+            app_data = self.ctx.get_var("AppData")
+            account_code = str(eval_args[0])
+            asset_type_code = str(eval_args[1])
+            period = str(eval_args[2])
+            try:
+                journal_id = int(eval_args[3])
+            except (TypeError, ValueError):
+                journal_id = 0
+            try:
+                amount = float(eval_args[4])
+            except (TypeError, ValueError):
+                amount = 0.0
+            vb_runtime.post_entry(app_data, account_code, asset_type_code, period, journal_id, amount)
             return
 
         print(f"[VB] Unknown statement: {line}")

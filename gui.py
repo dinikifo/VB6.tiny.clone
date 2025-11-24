@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton,
+    QWidget, QVBoxLayout, QLabel, QLineEdit, QTextEdit, QPushButton,
     QMessageBox, QListWidget, QComboBox
 )
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -23,6 +23,19 @@ class VBTextBox:
         self._widget.setText(str(value))
 
 
+class VBTextArea:
+    def __init__(self, widget: QTextEdit):
+        self._widget = widget
+
+    @property
+    def Text(self):
+        return self._widget.toPlainText()
+
+    @Text.setter
+    def Text(self, value):
+        self._widget.setPlainText(str(value))
+
+
 class VBListBox:
     def __init__(self, widget: QListWidget):
         self._widget = widget
@@ -39,6 +52,12 @@ class VBListBox:
     def SelectedText(self):
         item = self._widget.currentItem()
         return item.text() if item else ""
+
+    def Add(self, value):
+        self._widget.addItem(str(value))
+
+    def Clear(self):
+        self._widget.clear()
 
 
 class VBComboBox:
@@ -112,104 +131,123 @@ class VBForm(QWidget):
     def _build_ui(self):
         self.setWindowTitle(self.form_def.get("title", "VB Form"))
 
-        size = self.form_def.get("size", [400, 200])
-        if isinstance(size, (list, tuple)) and len(size) == 2:
-            self.resize(size[0], size[1])
-
-        layout = QVBoxLayout()
-        self.setLayout(layout)
+        # Prefer explicit width/height from the form definition; fall back
+        # to the legacy `size` field or a sensible default.
+        width = self.form_def.get("width")
+        height = self.form_def.get("height")
+        if width is not None and height is not None:
+            self.resize(width, height)
+        else:
+            size = self.form_def.get("size", [640, 480])
+            if isinstance(size, (list, tuple)) and len(size) == 2:
+                self.resize(size[0], size[1])
 
         controls = self.form_def.get("controls", [])
         for ctrl in controls:
             ctype = ctrl.get("type", "").lower()
 
+            x = ctrl.get("x", 0)
+            y = ctrl.get("y", 0)
+            cw = ctrl.get("width", 100)
+            ch = ctrl.get("height", 24)
+
+            widget = None
+            name = ctrl.get("name")
+
             if ctype == "label":
                 text = ctrl.get("text", "")
-                w = QLabel(text)
-                layout.addWidget(w)
+                widget = QLabel(text, self)
 
             elif ctype == "textbox":
-                name = ctrl.get("name")
-                w = QLineEdit()
+                widget = QLineEdit(self)
                 if "placeholder" in ctrl:
-                    w.setPlaceholderText(ctrl["placeholder"])
-                layout.addWidget(w)
+                    widget.setPlaceholderText(ctrl["placeholder"])
 
                 if name:
-                    vb_obj = VBTextBox(w)
+                    vb_obj = VBTextBox(widget)
                     self.ctx.set_var(name, vb_obj)
 
                 bind = ctrl.get("bind")
                 if bind and name:
-                    self.control_bindings[name] = (w, bind, "textbox")
+                    self.control_bindings[name] = (widget, bind, "textbox")
 
-            elif ctype == "button":
-                name = ctrl.get("name")
-                text = ctrl.get("text", "Button")
-                w = QPushButton(text)
-                layout.addWidget(w)
+            elif ctype == "textarea":
+                widget = QTextEdit(self)
+                if "placeholder" in ctrl:
+                    widget.setPlaceholderText(ctrl["placeholder"])
 
                 if name:
-                    self.ctx.set_var(name, w)
+                    vb_obj = VBTextArea(widget)
+                    self.ctx.set_var(name, vb_obj)
+
+                bind = ctrl.get("bind")
+                if bind and name:
+                    self.control_bindings[name] = (widget, bind, "textarea")
+
+            elif ctype == "button":
+                text = ctrl.get("text", "Button")
+                widget = QPushButton(text, self)
+
+                if name:
+                    self.ctx.set_var(name, widget)
 
                 events = ctrl.get("events", {})
                 for event_name, handler_name in events.items():
                     if event_name.lower() == "click":
-                        w.clicked.connect(self._make_event_handler(handler_name))
+                        widget.clicked.connect(self._make_event_handler(handler_name))
 
             elif ctype == "listbox":
-                name = ctrl.get("name")
-                w = QListWidget()
-                layout.addWidget(w)
+                widget = QListWidget(self)
 
                 if name:
-                    vb_obj = VBListBox(w)
+                    vb_obj = VBListBox(widget)
                     self.ctx.set_var(name, vb_obj)
 
                 bind = ctrl.get("bind")
                 if bind and name:
-                    self.control_bindings[name] = (w, bind, "listbox")
+                    self.control_bindings[name] = (widget, bind, "listbox")
 
                 events = ctrl.get("events", {})
                 for event_name, handler_name in events.items():
                     if event_name.lower() in ("change", "selectedindexchanged", "selectionchanged"):
-                        w.currentRowChanged.connect(self._make_event_handler(handler_name))
+                        widget.currentRowChanged.connect(self._make_event_handler(handler_name))
 
             elif ctype == "combobox":
-                name = ctrl.get("name")
-                w = QComboBox()
-                layout.addWidget(w)
+                widget = QComboBox(self)
 
                 if name:
-                    vb_obj = VBComboBox(w)
+                    vb_obj = VBComboBox(widget)
                     self.ctx.set_var(name, vb_obj)
 
                 bind = ctrl.get("bind")
                 if bind and name:
-                    self.control_bindings[name] = (w, bind, "combobox")
+                    self.control_bindings[name] = (widget, bind, "combobox")
 
                 events = ctrl.get("events", {})
                 for event_name, handler_name in events.items():
                     if event_name.lower() in ("change", "selectedindexchanged", "selectionchanged"):
-                        w.currentIndexChanged.connect(self._make_event_handler(handler_name))
+                        widget.currentIndexChanged.connect(self._make_event_handler(handler_name))
 
             elif ctype == "webbrowser":
-                name = ctrl.get("name")
-                w = QWebEngineView()
-                layout.addWidget(w)
+                widget = QWebEngineView(self)
 
                 initial_url = ctrl.get("url")
                 if initial_url:
-                    w.setUrl(QUrl(initial_url))
+                    widget.setUrl(QUrl(initial_url))
 
                 if name:
-                    vb_obj = VBWebBrowser(w)
+                    vb_obj = VBWebBrowser(widget)
                     self.ctx.set_var(name, vb_obj)
 
                 events = ctrl.get("events", {})
                 for event_name, handler_name in events.items():
                     if event_name.lower() in ("loadfinished", "load_done"):
-                        w.loadFinished.connect(self._make_event_handler(handler_name))
+                        widget.loadFinished.connect(self._make_event_handler(handler_name))
+
+            if widget is None:
+                continue
+
+            widget.setGeometry(x, y, cw, ch)
 
     def _make_event_handler(self, handler_name: str):
         def handler(*args, **kwargs):
@@ -235,6 +273,8 @@ class VBForm(QWidget):
 
             if ctype == "textbox":
                 widget.setText("" if val is None else str(val))
+            elif ctype == "textarea":
+                widget.setPlainText("" if val is None else str(val))
             elif ctype in ("listbox", "combobox"):
                 if hasattr(widget, "clear"):
                     widget.clear()
