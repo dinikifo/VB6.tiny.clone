@@ -77,7 +77,7 @@ There is also a small bridge from JSON to Qt widgets:
 
 The main demo is `demo.zip`, which shows:
 
-- A simple and minimalistic accounting app (demonstrating the data and working structure from the post found in: https://medium.com/@RobertKhou/double-entry-accounting-in-a-relational-database-2b7838a5d7f8). TODO: writting an app manual. NOTES: parts were updated to accomodate the demo's functionality.
+- A simple and minimalistic accounting app (demonstrating the data and working structure from the post found in: https://medium.com/@RobertKhou/double-entry-accounting-in-a-relational-database-2b7838a5d7f8). NOTES: parts of the runtime were updated to accomodate the demo's functionality. Can be useful in a fashion as to demonstrate what is required for building apps with the language.
 
 
 ---
