@@ -95,12 +95,6 @@ pip install PySide6
 # If your platform splits out WebEngine into a separate package, install that too.
 ```
 
-Then:
-
-```bash
-python tinyvb_webext/demo2.py
-```
-
 If the web browser widget fails due to missing Qt WebEngine, the rest of the demo should still give you a feel for the interpreter and the JSON runtime.
 
 ---
